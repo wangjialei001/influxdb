@@ -17,8 +17,15 @@ namespace InfluxDB.WebApi
             var host = CreateHostBuilder(args).Build();
             try
             {
+#if DEBUG
+                Console.WriteLine("DEBUG");
+#else
+
                 var msgDataService = host.Services.GetService(typeof(IMsgDataService)) as IMsgDataService;
                 msgDataService.ConsumRealData();
+#endif
+
+
             }
             catch (Exception ex)
             {

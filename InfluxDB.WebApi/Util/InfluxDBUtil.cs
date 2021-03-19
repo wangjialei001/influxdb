@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace InfluxDB.WebApi.Util
@@ -92,11 +93,14 @@ namespace InfluxDB.WebApi.Util
         }
         public async Task<List<T>> QueryData<T>(DateTime startTime, DateTime endTime, string bucket) where T : class, new()
         {
+
+            var startTimeUtc = startTime.ToUniversalTime();
+            var endTimeUtc = endTime.ToUniversalTime();
             //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -1h)";
             //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -10h)";
 
             //var query = $"from(bucket: \"" + bucket + "\") |> range(start: 2018-11-05T23:30:00Z, stop: 2018-11-06T00:00:00Z)";
-            var query = $"from(bucket: \"" + bucket + "\") |> range(start: " + startTime.ToString("yyyy-MM-ddTHH:mm:ssZ") + ", stop: " + endTime.ToString("yyyy-MM-ddTHH:mm:ssZ") + ")";
+            var query = $"from(bucket: \"" + bucket + "\") |> range(start: " + startTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ", stop: " + endTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ")";
             //var tables = await client.GetQueryApi().QueryAsync(query, org);
             var tables = await client.GetQueryApi().QueryAsync(query, org);
 
@@ -132,14 +136,70 @@ namespace InfluxDB.WebApi.Util
             }
             return items;
         }
-
-        public async Task<List<TestModel1>> QueryMeasurementData<T>(DateTime startTime, DateTime endTime, string bucket) where T : class, new()
+        public async Task<List<ResultItem>> QueryData(DateTime startTime, DateTime endTime, string bucket,Dictionary<string,string> filterFieldDic)
         {
+
+            var startTimeUtc = startTime.ToUniversalTime();
+            var endTimeUtc = endTime.ToUniversalTime();
             //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -1h)";
             //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -10h)";
 
             //var query = $"from(bucket: \"" + bucket + "\") |> range(start: 2018-11-05T23:30:00Z, stop: 2018-11-06T00:00:00Z)";
-            var query = $"from(bucket: \"" + bucket + "\") |> range(start: " + startTime.ToString("yyyy-MM-ddTHH:mm:ssZ") + ", stop: " + endTime.ToString("yyyy-MM-ddTHH:mm:ssZ") + ")";
+            //var query = $"from(bucket: \"" + bucket + "\") |> range(start: " + startTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ", stop: " + endTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ")";
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"from(bucket: \"").Append(bucket).Append("\") |> range(start: ").Append(startTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")).Append(", stop: ").Append(endTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")).Append(")");
+            if (filterFieldDic != null && filterFieldDic.Count() > 0)
+            {
+                sb.Append(" |> filter(fn:(r)=>");
+                int i = 0;
+                foreach (var _filterFieldDic in filterFieldDic)
+                {
+                    sb.Append("r.").Append(_filterFieldDic.Key).Append("==\"").Append(_filterFieldDic.Value).Append("\"");
+                    if (i < filterFieldDic.Count() - 1)
+                    {
+                        sb.Append(" and ");
+                    }
+                    i++;
+                }
+                sb.Append(")");
+            }
+            sb.Append(" |> sort(columns: [\"uptime\"], desc: false)");
+
+            //var tables = await client.GetQueryApi().QueryAsync(query, org);
+            var query = sb.ToString();
+            var tables = await client.GetQueryApi().QueryAsync(query, org);
+
+            var result = new List<ResultItem> { };
+
+            foreach (var table in tables)
+            {
+                var records = table.Records;
+                //var item = new Dictionary<string, object> { };
+                foreach (var record in records)
+                {
+                    //Console.WriteLine($"{record.GetMeasurement()}:{record.GetStart()}:{record.GetStop()}:{record.GetField()}:{record.GetTime()}: {record.GetValue()}");
+                    //Console.WriteLine($"{record.Values}");
+                    //item.Add(record.GetField(), record.GetValue());
+                    result.Add(new ResultItem { Item= record.Values });
+                }
+                //result.Add(new ResultItem
+                //{
+                //    Item = item
+                //});
+            }
+            return result;
+        }
+
+        public async Task<List<TestModel1>> QueryMeasurementData<T>(DateTime startTime, DateTime endTime, string bucket) where T : class, new()
+        {
+
+            var startTimeUtc = startTime.ToUniversalTime();
+            var endTimeUtc = endTime.ToUniversalTime();
+            //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -1h)";
+            //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -10h)";
+
+            //var query = $"from(bucket: \"" + bucket + "\") |> range(start: 2018-11-05T23:30:00Z, stop: 2018-11-06T00:00:00Z)";
+            var query = $"from(bucket: \"" + bucket + "\") |> range(start: " + startTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ", stop: " + endTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ")";
 
             var items = new List<TestModel1> { };
             await client.GetQueryApi().QueryAsync<TestModel1>(query, org, (cancellable, temperature) =>

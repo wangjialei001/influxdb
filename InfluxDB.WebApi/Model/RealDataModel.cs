@@ -48,6 +48,8 @@ namespace InfluxDB.WebApi.Model
     {
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
+        public long EquipId { get; set; }
+        public long StandarParamId { get; set; }
     }
     public class QueryRealDataItemModel
     {
@@ -88,5 +90,11 @@ namespace InfluxDB.WebApi.Model
         [Column("value")] public double Value { get; set; }
 
         [Column(IsTimestamp = true)] public DateTime Time { get; set; }
+    }
+
+
+    public class ResultItem
+    {
+        public Dictionary<string, object> Item { get; set; }
     }
 }

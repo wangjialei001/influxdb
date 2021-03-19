@@ -68,29 +68,45 @@ namespace InfluxDB.WebApi.Controllers
             }
             return await Task.FromResult("ok");
         }
-
+        /// <summary>
+        /// 实时数据查询
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         [HttpPost]
         public async Task<List<QueryRealDataItemModel>> QueryRealData(QueryRealDataModel input)
         {
-            var startTimeUtc = input.StartTime.ToUniversalTime();
-            var endTimeUtc = input.EndTime.ToUniversalTime();
-            var result = await _influxDBUtil.QueryData<QueryRealDataItemModel>(startTimeUtc, endTimeUtc, "RealData");
+            //var result = await _influxDBUtil.QueryData<QueryRealDataItemModel>(input.StartTime, input.EndTime, "RealData");
+            var queryDic = new Dictionary<string, string> { };
+            if (input.EquipId > 0)
+                queryDic.Add("EquipId", input.EquipId.ToString());
+            if (input.StandarParamId > 0)
+                queryDic.Add("StandarParamId", input.StandarParamId.ToString());
+            var result = await _influxDBUtil.QueryData(input.StartTime, input.EndTime, "RealData", queryDic);
+            return new List<QueryRealDataItemModel> { };
+        }
+        [HttpPost]
+        public async Task<List<ResultItem>> QueryRealDataList(QueryRealDataModel input)
+        {
+            //var result = await _influxDBUtil.QueryData<QueryRealDataItemModel>(input.StartTime, input.EndTime, "RealData");
+            var queryDic = new Dictionary<string, string> { };
+            if (input.EquipId > 0)
+                queryDic.Add("EquipId", input.EquipId.ToString());
+            if (input.StandarParamId > 0)
+                queryDic.Add("StandarParamId", input.StandarParamId.ToString());
+            var result = await _influxDBUtil.QueryData(input.StartTime, input.EndTime, "RealData", queryDic);
             return result;
         }
         [HttpPost]
         public async Task<List<TestModel>> QueryData(QueryDataModel input)
         {
-            var startTimeUtc = input.StartTime.ToUniversalTime();
-            var endTimeUtc = input.EndTime.ToUniversalTime();
-            var result = await _influxDBUtil.QueryData<TestModel>(startTimeUtc, endTimeUtc, input.Bucket);
+            var result = await _influxDBUtil.QueryData<TestModel>(input.StartTime, input.EndTime, input.Bucket);
             return result;
         }
         [HttpPost]
         public async Task<List<TestModel1>> QueryMeasurementData(QueryDataModel input)
         {
-            var startTimeUtc = input.StartTime.ToUniversalTime();
-            var endTimeUtc = input.EndTime.ToUniversalTime();
-            var result = await _influxDBUtil.QueryMeasurementData<TestModel1>(startTimeUtc, endTimeUtc, input.Bucket);
+            var result = await _influxDBUtil.QueryMeasurementData<TestModel1>(input.StartTime, input.EndTime, input.Bucket);
             return result;
         }
     }
