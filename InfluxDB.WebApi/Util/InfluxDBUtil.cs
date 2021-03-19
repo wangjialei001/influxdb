@@ -2,6 +2,7 @@
 using InfluxDB.Client.Api.Domain;
 using InfluxDB.Client.Writes;
 using InfluxDB.WebApi.Model;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,15 +16,20 @@ namespace InfluxDB.WebApi.Util
     {
         private readonly InfluxDBClient client;
         private readonly WriteApi writeApi;
+        private readonly IConfiguration _configuration;
 
         // You can generate a Token from the "Tokens Tab" in the UI
-        private const string token = "92Y0kp0pNCMVfEMt3mBtgV0umZUWjg639dgR_FR83Q8qMxvuuf_W-d6H6P15YsCXWSrc9noYpYVboCiiINujCQ==";
+        private readonly string token;
         //private const string bucket = "zrh";
-        private const string org = "zrh";
+        private readonly string org;
         private readonly IHttpClientFactory _clientFactory;
-        public InfluxDBUtil(IHttpClientFactory clientFactory)
+        public InfluxDBUtil(IHttpClientFactory clientFactory, IConfiguration configuration)
         {
-            client = InfluxDBClientFactory.Create("http://10.0.101.129:8086", token.ToCharArray());
+            _configuration = configuration;
+            token = _configuration["InfluxDB:Token"];
+            org = _configuration["InfluxDB:Org"];
+
+            client = InfluxDBClientFactory.Create(_configuration["InfluxDB:Url"], token.ToCharArray());
             writeApi = client.GetWriteApi();
             _clientFactory = clientFactory;
         }

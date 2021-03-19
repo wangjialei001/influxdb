@@ -27,13 +27,13 @@ namespace Msg.Core.MQ
             url = configuration["MQ:Url"];
             producerDic = new ConcurrentDictionary<string, IProducer<Null, string>>();
         }
-        
+
         public static async Task Produce(string topic, string message)
         {
             try
             {
                 IProducer<Null, string> p;
-                if(!producerDic.TryGetValue(topic,out p) || p == null)
+                if (!producerDic.TryGetValue(topic, out p) || p == null)
                 {
                     var config = new ProducerConfig { BootstrapServers = url };
                     p = new ProducerBuilder<Null, string>(config).Build();
@@ -46,7 +46,7 @@ namespace Msg.Core.MQ
                 try
                 {
                     var dr = await p.ProduceAsync(topic, new Message<Null, string> { Value = message });
-                    Console.WriteLine($"Delivered '{dr.Value}' to '{dr.TopicPartitionOffset}'");
+                    //Console.WriteLine($"Delivered '{dr.Value}' to '{dr.TopicPartitionOffset}'");
                 }
                 catch (ProduceException<Null, string> e)
                 {
@@ -150,7 +150,7 @@ namespace Msg.Core.MQ
                         try
                         {
                             var cr = c.Consume(cts.Token);
-                            Console.WriteLine($"Consumed message '{cr.Message.Value}' at: '{cr.TopicPartitionOffset}'.");
+                            //Console.WriteLine($"Consumed message '{cr.Message.Value}' at: '{cr.TopicPartitionOffset}'.");
                             value = cr.Message.Value;
                         }
                         catch (ConsumeException e)
