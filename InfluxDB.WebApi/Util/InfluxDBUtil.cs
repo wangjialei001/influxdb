@@ -3,6 +3,7 @@ using InfluxDB.Client.Api.Domain;
 using InfluxDB.Client.Writes;
 using InfluxDB.WebApi.Model;
 using Microsoft.Extensions.Configuration;
+using NodaTime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +25,7 @@ namespace InfluxDB.WebApi.Util
         //private const string bucket = "zrh";
         private readonly string org;
         private readonly IHttpClientFactory _clientFactory;
+        
         public InfluxDBUtil(IHttpClientFactory clientFactory, IConfiguration configuration)
         {
             _configuration = configuration;
@@ -136,7 +138,7 @@ namespace InfluxDB.WebApi.Util
             }
             return items;
         }
-        public async Task<List<ResultItem>> QueryData(DateTime startTime, DateTime endTime, string bucket,Dictionary<string,string> filterFieldDic)
+        public async Task<List<Dictionary<string, object>>> QueryData(DateTime startTime, DateTime endTime, string bucket, Dictionary<string, string> filterFieldDic)
         {
 
             var startTimeUtc = startTime.ToUniversalTime();
@@ -169,7 +171,9 @@ namespace InfluxDB.WebApi.Util
             var query = sb.ToString();
             var tables = await client.GetQueryApi().QueryAsync(query, org);
 
-            var result = new List<ResultItem> { };
+            var str = await client.GetQueryApi().QueryRawAsync(query, org);
+
+            var result = new List<Dictionary<string, object>> { };
 
             foreach (var table in tables)
             {
@@ -180,7 +184,32 @@ namespace InfluxDB.WebApi.Util
                     //Console.WriteLine($"{record.GetMeasurement()}:{record.GetStart()}:{record.GetStop()}:{record.GetField()}:{record.GetTime()}: {record.GetValue()}");
                     //Console.WriteLine($"{record.Values}");
                     //item.Add(record.GetField(), record.GetValue());
-                    result.Add(new ResultItem { Item= record.Values });
+                    var item = new Dictionary<string, object> { };
+                    if (record.Values.ContainsKey("_start") && record.Values["_start"] != null)
+                    {
+                        var _start = ((Instant)record.Values["_start"]).ToDateTimeUtc().ToLocalTime();
+                        item.Add("_start", _start.ToString("yyyy-MM-dd HH:mm:ss"));
+                    }
+                    if (record.Values.ContainsKey("_stop") && record.Values["_stop"] != null)
+                    {
+                        var _stop = ((Instant)record.Values["_stop"]).ToDateTimeUtc().ToLocalTime();
+                        item.Add("_stop", _stop.ToString("yyyy-MM-dd HH:mm:ss"));
+                    }
+                    if (record.Values.ContainsKey("_time") && record.Values["_time"] != null)
+                    {
+                        var _time = ((Instant)record.Values["_time"]).ToDateTimeUtc().ToLocalTime();
+                        item.Add("_time", _time.ToString("yyyy-MM-dd HH:mm:ss"));
+                    }
+                    item.Add(record.Values["_field"].ToString(), record.Values["_value"]);
+                    item.Add("_measurement", record.Values["_measurement"]);
+                    foreach (var value in record.Values)
+                    {
+                        if (!Metadata.RecordKey.Contains(value.Key))
+                        {
+                            item.Add(value.Key, value.Value);
+                        }
+                    }
+                    result.Add(item);
                 }
                 //result.Add(new ResultItem
                 //{

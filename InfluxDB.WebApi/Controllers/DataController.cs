@@ -86,7 +86,7 @@ namespace InfluxDB.WebApi.Controllers
             return new List<QueryRealDataItemModel> { };
         }
         [HttpPost]
-        public async Task<List<ResultItem>> QueryRealDataList(QueryRealDataModel input)
+        public async Task<List<Dictionary<string, object>>> QueryRealDataList(QueryRealDataModel input)
         {
             //var result = await _influxDBUtil.QueryData<QueryRealDataItemModel>(input.StartTime, input.EndTime, "RealData");
             var queryDic = new Dictionary<string, string> { };
