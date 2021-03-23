@@ -115,3 +115,7 @@ E:\opensource\WebApplication1\InfluxDB\InfluxDB.WebApi\bin\Debug\netcoreapp3.1\r
 E:\opensource\WebApplication1\InfluxDB\InfluxDB.WebApi\bin\Debug\netcoreapp3.1\runtimes\win\lib\netcoreapp3.0\System.Windows.Extensions.dll
 E:\opensource\WebApplication1\InfluxDB\InfluxDB.WebApi\obj\Debug\netcoreapp3.1\InfluxDB.WebApi.csproj.CoreCompileInputs.cache
 E:\opensource\WebApplication1\InfluxDB\InfluxDB.WebApi\obj\Debug\netcoreapp3.1\InfluxDB.WebApi.MvcApplicationPartsAssemblyInfo.cache
+E:\opensource\WebApplication1\InfluxDB\InfluxDB.WebApi\bin\Debug\netcoreapp3.1\nlog.config
+E:\opensource\WebApplication1\InfluxDB\InfluxDB.WebApi\bin\Debug\netcoreapp3.1\NLog.dll
+E:\opensource\WebApplication1\InfluxDB\InfluxDB.WebApi\bin\Debug\netcoreapp3.1\NLog.Extensions.Logging.dll
+E:\opensource\WebApplication1\InfluxDB\InfluxDB.WebApi\bin\Debug\netcoreapp3.1\NLog.Web.AspNetCore.dll

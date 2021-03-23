@@ -1,6 +1,7 @@
 ﻿using InfluxDB.WebApi.Model;
 using InfluxDB.WebApi.Util;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,8 +14,10 @@ namespace InfluxDB.WebApi.Controllers
     public class DataController : ControllerBase
     {
         private readonly InfluxDBUtil _influxDBUtil;
-        public DataController(InfluxDBUtil influxDBUtil)
+        private readonly ILogger<DataController> _logger;
+        public DataController(InfluxDBUtil influxDBUtil, ILogger<DataController> logger)
         {
+            _logger = logger;
             _influxDBUtil = influxDBUtil;
         }
         /// <summary>
@@ -55,6 +58,7 @@ namespace InfluxDB.WebApi.Controllers
                 }
                 catch (Exception ex)
                 {
+                    _logger.LogError(ex, "InsertRealData");
                     Console.WriteLine("错误：" + ex.Message);
                 }
             }
@@ -64,6 +68,7 @@ namespace InfluxDB.WebApi.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "InsertRealData");
                 Console.WriteLine("错误：" + ex.Message);
             }
             return await Task.FromResult("ok");
@@ -95,6 +100,34 @@ namespace InfluxDB.WebApi.Controllers
             if (input.StandarParamId > 0)
                 queryDic.Add("StandarParamId", input.StandarParamId.ToString());
             var result = await _influxDBUtil.QueryData(input.StartTime, input.EndTime, "RealData", queryDic);
+            return result;
+        }
+        [HttpPost]
+        public async Task<ApiResult<List<RealDataItemModel>>> QueryRealDataItem(QueryRealDataModel input)
+        {
+            var result = new ApiResult<List<RealDataItemModel>> { Code = 200, Data = new List<RealDataItemModel> { } };
+            try
+            {
+                var queryDic = new Dictionary<string, string> { };
+                if (input.EquipId > 0)
+                    queryDic.Add("EquipId", input.EquipId.ToString());
+                if (input.StandarParamId > 0)
+                    queryDic.Add("StandarParamId", input.StandarParamId.ToString());
+                var resultDic = await _influxDBUtil.QueryData(input.StartTime, input.EndTime, "RealData", queryDic);
+                foreach (var _resultDic in resultDic)
+                {
+                    string _value = _resultDic["RealValue"] != null ? _resultDic["RealValue"].ToString() : string.Empty;
+                    result.Data.Add(new RealDataItemModel
+                    {
+                        Time = DateTime.Parse(_resultDic["_time"].ToString()).ToString("yyyy-MM-dd HH:mm:ss"),
+                        Value = _value
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "QueryRealDataItem");
+            }
             return result;
         }
         [HttpPost]

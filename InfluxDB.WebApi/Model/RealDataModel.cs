@@ -91,4 +91,10 @@ namespace InfluxDB.WebApi.Model
 
         [Column(IsTimestamp = true)] public DateTime Time { get; set; }
     }
+
+    public class RealDataItemModel
+    {
+        public string Time { get; set; }
+        public string Value { get; set; }
+    }
 }

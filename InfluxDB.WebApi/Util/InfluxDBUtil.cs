@@ -3,6 +3,7 @@ using InfluxDB.Client.Api.Domain;
 using InfluxDB.Client.Writes;
 using InfluxDB.WebApi.Model;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using NodaTime;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,7 @@ namespace InfluxDB.WebApi.Util
 {
     public class InfluxDBUtil
     {
+        private readonly ILogger<InfluxDBUtil> _logger;
         private readonly InfluxDBClient client;
         private readonly WriteApi writeApi;
         private readonly IConfiguration _configuration;
@@ -25,8 +27,8 @@ namespace InfluxDB.WebApi.Util
         //private const string bucket = "zrh";
         private readonly string org;
         private readonly IHttpClientFactory _clientFactory;
-        
-        public InfluxDBUtil(IHttpClientFactory clientFactory, IConfiguration configuration)
+
+        public InfluxDBUtil(IHttpClientFactory clientFactory, IConfiguration configuration, ILogger<InfluxDBUtil> logger)
         {
             _configuration = configuration;
             token = _configuration["InfluxDB:Token"];
@@ -35,6 +37,7 @@ namespace InfluxDB.WebApi.Util
             client = InfluxDBClientFactory.Create(_configuration["InfluxDB:Url"], token.ToCharArray());
             writeApi = client.GetWriteApi();
             _clientFactory = clientFactory;
+            _logger = logger;
         }
         public void WriteData(string data, string bucket)
         {
@@ -140,82 +143,89 @@ namespace InfluxDB.WebApi.Util
         }
         public async Task<List<Dictionary<string, object>>> QueryData(DateTime startTime, DateTime endTime, string bucket, Dictionary<string, string> filterFieldDic)
         {
-
-            var startTimeUtc = startTime.ToUniversalTime();
-            var endTimeUtc = endTime.ToUniversalTime();
-            //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -1h)";
-            //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -10h)";
-
-            //var query = $"from(bucket: \"" + bucket + "\") |> range(start: 2018-11-05T23:30:00Z, stop: 2018-11-06T00:00:00Z)";
-            //var query = $"from(bucket: \"" + bucket + "\") |> range(start: " + startTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ", stop: " + endTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ")";
-            StringBuilder sb = new StringBuilder();
-            sb.Append($"from(bucket: \"").Append(bucket).Append("\") |> range(start: ").Append(startTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")).Append(", stop: ").Append(endTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")).Append(")");
-            if (filterFieldDic != null && filterFieldDic.Count() > 0)
-            {
-                sb.Append(" |> filter(fn:(r)=>");
-                int i = 0;
-                foreach (var _filterFieldDic in filterFieldDic)
-                {
-                    sb.Append("r.").Append(_filterFieldDic.Key).Append("==\"").Append(_filterFieldDic.Value).Append("\"");
-                    if (i < filterFieldDic.Count() - 1)
-                    {
-                        sb.Append(" and ");
-                    }
-                    i++;
-                }
-                sb.Append(")");
-            }
-            sb.Append(" |> sort(columns: [\"uptime\"], desc: false)");
-
-            //var tables = await client.GetQueryApi().QueryAsync(query, org);
-            var query = sb.ToString();
-            var tables = await client.GetQueryApi().QueryAsync(query, org);
-
-            var str = await client.GetQueryApi().QueryRawAsync(query, org);
-
             var result = new List<Dictionary<string, object>> { };
-
-            foreach (var table in tables)
+            try
             {
-                var records = table.Records;
-                //var item = new Dictionary<string, object> { };
-                foreach (var record in records)
+                var startTimeUtc = startTime.ToUniversalTime();
+                var endTimeUtc = endTime.ToUniversalTime();
+                //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -1h)";
+                //var query = $"from(bucket: \"" + bucket + "\") |> range(start: -10h)";
+
+                //var query = $"from(bucket: \"" + bucket + "\") |> range(start: 2018-11-05T23:30:00Z, stop: 2018-11-06T00:00:00Z)";
+                //var query = $"from(bucket: \"" + bucket + "\") |> range(start: " + startTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ", stop: " + endTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ") + ")";
+                StringBuilder sb = new StringBuilder();
+                sb.Append($"from(bucket: \"").Append(bucket).Append("\") |> range(start: ").Append(startTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")).Append(", stop: ").Append(endTimeUtc.ToString("yyyy-MM-ddTHH:mm:ssZ")).Append(")");
+                if (filterFieldDic != null && filterFieldDic.Count() > 0)
                 {
-                    //Console.WriteLine($"{record.GetMeasurement()}:{record.GetStart()}:{record.GetStop()}:{record.GetField()}:{record.GetTime()}: {record.GetValue()}");
-                    //Console.WriteLine($"{record.Values}");
-                    //item.Add(record.GetField(), record.GetValue());
-                    var item = new Dictionary<string, object> { };
-                    if (record.Values.ContainsKey("_start") && record.Values["_start"] != null)
+                    sb.Append(" |> filter(fn:(r)=>");
+                    int i = 0;
+                    foreach (var _filterFieldDic in filterFieldDic)
                     {
-                        var _start = ((Instant)record.Values["_start"]).ToDateTimeUtc().ToLocalTime();
-                        item.Add("_start", _start.ToString("yyyy-MM-dd HH:mm:ss"));
-                    }
-                    if (record.Values.ContainsKey("_stop") && record.Values["_stop"] != null)
-                    {
-                        var _stop = ((Instant)record.Values["_stop"]).ToDateTimeUtc().ToLocalTime();
-                        item.Add("_stop", _stop.ToString("yyyy-MM-dd HH:mm:ss"));
-                    }
-                    if (record.Values.ContainsKey("_time") && record.Values["_time"] != null)
-                    {
-                        var _time = ((Instant)record.Values["_time"]).ToDateTimeUtc().ToLocalTime();
-                        item.Add("_time", _time.ToString("yyyy-MM-dd HH:mm:ss"));
-                    }
-                    item.Add(record.Values["_field"].ToString(), record.Values["_value"]);
-                    item.Add("_measurement", record.Values["_measurement"]);
-                    foreach (var value in record.Values)
-                    {
-                        if (!Metadata.RecordKey.Contains(value.Key))
+                        sb.Append("r.").Append(_filterFieldDic.Key).Append("==\"").Append(_filterFieldDic.Value).Append("\"");
+                        if (i < filterFieldDic.Count() - 1)
                         {
-                            item.Add(value.Key, value.Value);
+                            sb.Append(" and ");
                         }
+                        i++;
                     }
-                    result.Add(item);
+                    sb.Append(")");
                 }
-                //result.Add(new ResultItem
-                //{
-                //    Item = item
-                //});
+                sb.Append(" |> sort(columns: [\"uptime\"], desc: false)");
+
+                //var tables = await client.GetQueryApi().QueryAsync(query, org);
+                var query = sb.ToString();
+                var tables = await client.GetQueryApi().QueryAsync(query, org);
+
+                var str = await client.GetQueryApi().QueryRawAsync(query, org);
+
+
+                foreach (var table in tables)
+                {
+                    var records = table.Records;
+                    //var item = new Dictionary<string, object> { };
+                    foreach (var record in records)
+                    {
+                        //Console.WriteLine($"{record.GetMeasurement()}:{record.GetStart()}:{record.GetStop()}:{record.GetField()}:{record.GetTime()}: {record.GetValue()}");
+                        //Console.WriteLine($"{record.Values}");
+                        //item.Add(record.GetField(), record.GetValue());
+                        var item = new Dictionary<string, object> { };
+                        if (record.Values.ContainsKey("_start") && record.Values["_start"] != null)
+                        {
+                            var _start = ((Instant)record.Values["_start"]).ToDateTimeUtc().ToLocalTime();
+                            item.Add("_start", _start.ToString("yyyy-MM-dd HH:mm:ss"));
+                        }
+                        if (record.Values.ContainsKey("_stop") && record.Values["_stop"] != null)
+                        {
+                            var _stop = ((Instant)record.Values["_stop"]).ToDateTimeUtc().ToLocalTime();
+                            item.Add("_stop", _stop.ToString("yyyy-MM-dd HH:mm:ss"));
+                        }
+                        if (record.Values.ContainsKey("_time") && record.Values["_time"] != null)
+                        {
+                            var _time = ((Instant)record.Values["_time"]).ToDateTimeUtc().ToLocalTime();
+                            item.Add("_time", _time.ToString("yyyy-MM-dd HH:mm:ss"));
+                        }
+                        item.Add(record.Values["_field"].ToString(), record.Values["_value"]);
+                        item.Add("_measurement", record.Values["_measurement"]);
+                        foreach (var value in record.Values)
+                        {
+                            if (!Metadata.RecordKey.Contains(value.Key))
+                            {
+                                item.Add(value.Key, value.Value);
+                            }
+                        }
+                        result.Add(item);
+                    }
+                    //result.Add(new ResultItem
+                    //{
+                    //    Item = item
+                    //});
+                }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "QueryData");
+            }
+            
             return result;
         }
 
