@@ -49,6 +49,7 @@ namespace InfluxDB.WebApi.Model
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public long EquipId { get; set; }
+        public long Id { get; set; }
         public long StandarParamId { get; set; }
     }
     public class QueryRealDataItemModel

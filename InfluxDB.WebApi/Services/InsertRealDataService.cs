@@ -65,8 +65,9 @@ namespace InfluxDB.WebApi.Services
                 try
                 {
                     Dictionary<string, string> tagDic = new Dictionary<string, string> { };
-                    tagDic.Add("EquipId", item.Equid.ToString());
-                    tagDic.Add("StandarParamId", item.Standarparamid.ToString());
+                    //tagDic.Add("EquipId", item.Equid.ToString());
+                    //tagDic.Add("StandarParamId", item.Standarparamid.ToString());
+                    tagDic.Add("Id", item.Id.ToString());
                     Dictionary<string, string> fieldDic = new Dictionary<string, string> { };
                     fieldDic.Add("RealValue", item.Realvalue);
 

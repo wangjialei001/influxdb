@@ -40,8 +40,9 @@ namespace InfluxDB.WebApi.Controllers
                 try
                 {
                     Dictionary<string, string> tagDic = new Dictionary<string, string> { };
-                    tagDic.Add("EquipId", item.Equid.ToString());
-                    tagDic.Add("StandarParamId", item.Standarparamid.ToString());
+                    //tagDic.Add("EquipId", item.Equid.ToString());
+                    //tagDic.Add("StandarParamId", item.Standarparamid.ToString());
+                    tagDic.Add("Id", item.Id.ToString());
                     Dictionary<string, string> fieldDic = new Dictionary<string, string> { };
                     fieldDic.Add("RealValue", item.Realvalue);
 
@@ -109,10 +110,11 @@ namespace InfluxDB.WebApi.Controllers
             try
             {
                 var queryDic = new Dictionary<string, string> { };
-                if (input.EquipId > 0)
-                    queryDic.Add("EquipId", input.EquipId.ToString());
-                if (input.StandarParamId > 0)
-                    queryDic.Add("StandarParamId", input.StandarParamId.ToString());
+                //if (input.EquipId > 0)
+                //    queryDic.Add("EquipId", input.EquipId.ToString());
+                //if (input.StandarParamId > 0)
+                //    queryDic.Add("StandarParamId", input.StandarParamId.ToString());
+                queryDic.Add("Id", input.Id.ToString());
                 var resultDic = await _influxDBUtil.QueryData(input.StartTime, input.EndTime, "RealData", queryDic);
                 foreach (var _resultDic in resultDic)
                 {
