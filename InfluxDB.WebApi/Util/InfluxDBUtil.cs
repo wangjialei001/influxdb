@@ -176,7 +176,7 @@ namespace InfluxDB.WebApi.Util
                 var query = sb.ToString();
                 var tables = await client.GetQueryApi().QueryAsync(query, org);
 
-                var str = await client.GetQueryApi().QueryRawAsync(query, org);
+                //var str = await client.GetQueryApi().QueryRawAsync(query, org);
 
 
                 foreach (var table in tables)
